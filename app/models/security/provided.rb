@@ -6,7 +6,12 @@ module Security::Provided
   class_methods do
     def provider
       registry = Provider::Registry.for_concept(:securities)
+<<<<<<< HEAD
       registry.get_provider(:synth)
+=======
+      # Try each provider in order until we find one that's configured
+      registry.providers.compact.first
+>>>>>>> 6b5cab33 (Initial commit)
     end
 
     def search_provider(symbol, country_code: nil, exchange_operating_mic: nil)

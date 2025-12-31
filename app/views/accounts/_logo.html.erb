@@ -8,7 +8,11 @@
 } %>
 
 <% if account.plaid_account_id? && account.institution_domain.present? %>
+<<<<<<< HEAD
   <%= image_tag "https://logo.synthfinance.com/#{account.institution_domain}", class: "shrink-0 rounded-full #{size_classes[size]}" %>
+=======
+  <%= image_tag "https://logo.clearbit.com/#{account.institution_domain}", class: "shrink-0 rounded-full #{size_classes[size]}" %>
+>>>>>>> 6b5cab33 (Initial commit)
 <% elsif account.logo.attached? %>
   <%= image_tag account.logo, class: "shrink-0 rounded-full #{size_classes[size]}" %>
 <% else %>

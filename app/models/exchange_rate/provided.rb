@@ -4,7 +4,12 @@ module ExchangeRate::Provided
   class_methods do
     def provider
       registry = Provider::Registry.for_concept(:exchange_rates)
+<<<<<<< HEAD
       registry.get_provider(:synth)
+=======
+      # Try each provider in order until we find one that's configured
+      registry.providers.compact.first
+>>>>>>> 6b5cab33 (Initial commit)
     end
 
     def find_or_fetch_rate(from:, to:, date: Date.current, cache: true)

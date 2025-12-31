@@ -6,7 +6,15 @@
         <%= tag.p @holding.ticker, class: "text-sm text-secondary" %>
       </div>
 
+<<<<<<< HEAD
       <%= image_tag "https://logo.synthfinance.com/ticker/#{@holding.ticker}", loading: "lazy", class: "w-9 h-9 rounded-full" %>
+=======
+      <% if @holding.security.logo_url.present? %>
+        <%= image_tag @holding.security.logo_url, loading: "lazy", class: "w-9 h-9 rounded-full" %>
+      <% else %>
+        <%= render DS::FilledIcon.new(variant: :text, hex_color: "#6366f1", text: @holding.ticker, size: "md", rounded: true) %>
+      <% end %>
+>>>>>>> 6b5cab33 (Initial commit)
     </div>
   <% end %>
 

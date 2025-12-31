@@ -40,6 +40,24 @@ class Provider::Registry
         Provider::Synth.new(api_key)
       end
 
+<<<<<<< HEAD
+=======
+      def exchangerate_api
+        api_key = ENV.fetch("EXCHANGERATE_API_KEY", Setting.exchangerate_api_key)
+
+        # ExchangerateApi can work without an API key using fallback endpoint
+        Provider::ExchangerateApi.new(api_key)
+      end
+
+      def financial_modeling_prep
+        api_key = ENV.fetch("FMP_API_KEY", Setting.fmp_api_key)
+
+        return nil unless api_key.present?
+
+        Provider::FinancialModelingPrep.new(api_key)
+      end
+
+>>>>>>> 6b5cab33 (Initial commit)
       def plaid_us
         config = Rails.application.config.plaid
 
@@ -92,6 +110,7 @@ class Provider::Registry
     def available_providers
       case concept
       when :exchange_rates
+<<<<<<< HEAD
         %i[synth]
       when :securities
         %i[synth]
@@ -99,6 +118,17 @@ class Provider::Registry
         %i[openai]
       else
         %i[synth plaid_us plaid_eu github openai]
+=======
+        # Prioritize new providers, fallback to synth if available
+        %i[exchangerate_api synth]
+      when :securities
+        # Prioritize new providers, fallback to synth if available
+        %i[financial_modeling_prep synth]
+      when :llm
+        %i[openai]
+      else
+        %i[exchangerate_api financial_modeling_prep synth plaid_us plaid_eu github openai]
+>>>>>>> 6b5cab33 (Initial commit)
       end
     end
 end

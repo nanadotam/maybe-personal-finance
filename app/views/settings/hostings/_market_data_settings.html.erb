@@ -1,0 +1,98 @@
+<div class="space-y-6">
+  <%# Exchange Rates API Section %>
+  <div class="space-y-4">
+    <div>
+      <h2 class="font-medium mb-1">Exchange Rates API</h2>
+      <% if ENV["EXCHANGERATE_API_KEY"].present? %>
+        <p class="text-sm text-secondary">You have successfully configured your ExchangerateApi key through the EXCHANGERATE_API_KEY environment variable.</p>
+      <% else %>
+        <p class="text-secondary text-sm mb-4">
+          Configure your Exchange Rates API key to fetch exchange rate data. 
+          <a href="https://www.exchangerate-api.com/" target="_blank" class="text-blue-600 underline">Sign up for free</a> (1,500 requests/month).
+        </p>
+      <% end %>
+    </div>
+
+    <%= styled_form_with model: Setting.new,
+                          url: settings_hosting_path,
+                          method: :patch,
+                          data: {
+                            controller: "auto-submit-form",
+                            "auto-submit-form-trigger-event-value": "blur"
+                          } do |form| %>
+      <%= form.text_field :exchangerate_api_key,
+                          label: "API Key",
+                          type: "password",
+                          placeholder: "Enter your ExchangerateApi key",
+                          value: ENV.fetch("EXCHANGERATE_API_KEY", Setting.exchangerate_api_key),
+                          disabled: ENV["EXCHANGERATE_API_KEY"].present?,
+                          container_class: @exchangerate_usage.present? && !@exchangerate_usage.success? ? "border-red-500" : "",
+                          data: { "auto-submit-form-target": "auto" } %>
+    <% end %>
+
+    <% if @exchangerate_usage.present? && @exchangerate_usage.success? %>
+      <div class="space-y-4">
+        <div class="bg-gray-100 rounded-md px-1.5 py-0.5 w-fit">
+          <p class="text-xs font-medium text-secondary uppercase">
+            <%= @exchangerate_usage.data.plan %>
+          </p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Financial Modeling Prep API Section %>
+  <div class="space-y-4">
+    <div>
+      <h2 class="font-medium mb-1">Financial Modeling Prep API</h2>
+      <% if ENV["FMP_API_KEY"].present? %>
+        <p class="text-sm text-secondary">You have successfully configured your FMP API key through the FMP_API_KEY environment variable.</p>
+      <% else %>
+        <p class="text-secondary text-sm mb-4">
+          Configure your Financial Modeling Prep API key to fetch stock prices and securities data. 
+          <a href="https://financialmodelingprep.com/developer/docs/" target="_blank" class="text-blue-600 underline">Sign up for free</a> (250 requests/day).
+        </p>
+      <% end %>
+    </div>
+
+    <%= styled_form_with model: Setting.new,
+                          url: settings_hosting_path,
+                          method: :patch,
+                          data: {
+                            controller: "auto-submit-form",
+                            "auto-submit-form-trigger-event-value": "blur"
+                          } do |form| %>
+      <%= form.text_field :fmp_api_key,
+                          label: "API Key",
+                          type: "password",
+                          placeholder: "Enter your FMP API key",
+                          value: ENV.fetch("FMP_API_KEY", Setting.fmp_api_key),
+                          disabled: ENV["FMP_API_KEY"].present?,
+                          container_class: @fmp_usage.present? && !@fmp_usage.success? ? "border-red-500" : "",
+                          data: { "auto-submit-form-target": "auto" } %>
+    <% end %>
+
+    <% if @fmp_usage.present? && @fmp_usage.success? %>
+      <div class="space-y-4">
+        <div class="bg-gray-100 rounded-md px-1.5 py-0.5 w-fit">
+          <p class="text-xs font-medium text-secondary uppercase">
+            <%= @fmp_usage.data.plan %>
+          </p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Legacy Synth API Section (DEPRECATED) %>
+  <% if ENV["SYNTH_API_KEY"].present? || Setting.synth_api_key.present? %>
+    <div class="space-y-4 opacity-50">
+      <div>
+        <h2 class="font-medium mb-1">Synth API (Deprecated)</h2>
+        <p class="text-sm text-secondary">
+          Synth Finance has <a href="https://maybe.co" target="_blank" class="underline">shut down</a>. 
+          This API key is no longer functional. Please use the new providers above.
+        </p>
+      </div>
+    </div>
+  <% end %>
+</div>

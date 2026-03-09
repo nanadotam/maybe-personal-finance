@@ -56,21 +56,24 @@ class Assistant::Responder
         { call_id: fr.call_id, function_name: fr.function_name, function_args: fr.function_args }
       end
 
-      # Get follow-up response with tool call results
+      # Get follow-up response with tool call results.
+      # Don't send tools so the model is forced to respond with text
+      # (prevents infinite tool-call loops that waste tokens).
       get_llm_response(
         streamer: streamer,
         function_results: function_tool_calls.map(&:to_result),
         function_requests: fn_requests_for_context,
-        previous_response_id: response.id
+        previous_response_id: response.id,
+        include_tools: false
       )
     end
 
-    def get_llm_response(streamer:, function_results: [], function_requests: [], previous_response_id: nil)
+    def get_llm_response(streamer:, function_results: [], function_requests: [], previous_response_id: nil, include_tools: true)
       response = llm.chat_response(
         message.content,
         model: message.ai_model,
         instructions: instructions,
-        functions: function_tool_caller.function_definitions,
+        functions: include_tools ? function_tool_caller.function_definitions : [],
         function_results: function_results,
         function_requests: function_requests,
         streamer: streamer,

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nana Amoako — Cloud Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-hover: #1a1a1a;
+      --border: #262626;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .header-left h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    .header-left p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .header-right .name {
+      font-size: 0.875rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Status grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .status-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .status-card .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .status-card .value {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .status-card .sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+    /* Apps section */
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .app-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .app-card:hover {
+      background: var(--surface-hover);
+      border-color: var(--accent);
+    }
+    .app-card .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .app-card .app-name {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+    .app-card .app-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .app-card .app-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-weight: 500;
+    }
+    .badge-live { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-soon { background: rgba(234,179,8,0.15); color: var(--yellow); }
+
+    /* Services table */
+    .services-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2.5rem;
+    }
+    .services-table th {
+      text-align: left;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .services-table td {
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .services-table tr:last-child td { border-bottom: none; }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .header-right { text-align: left; }
+      .status-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <h1>Cloud Dashboard</h1>
+        <p>Personal infrastructure &amp; apps</p>
+      </div>
+      <div class="header-right">
+        <div class="name">Nana Amoako</div>
+        <div>nanaamoako.dev</div>
+      </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="status-grid">
+      <div class="status-card">
+        <div class="label">System Status</div>
+        <div class="value" id="sys-status"><span class="dot yellow"></span>Loading</div>
+        <div class="sub" id="sys-uptime"></div>
+      </div>
+      <div class="status-card">
+        <div class="label">Server Time</div>
+        <div class="value" id="server-time">--:--</div>
+        <div class="sub" id="server-date"></div>
+      </div>
+      <div class="status-card">
+        <div class="label">Region</div>
+        <div class="value">us-east1-c</div>
+        <div class="sub">GCP &middot; e2-micro</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Services</div>
+        <div class="value" id="services-count">0 / 4</div>
+        <div class="sub">containers running</div>
+      </div>
+    </div>
+
+    <!-- Apps -->
+    <div class="section-title">Applications</div>
+    <div class="app-grid">
+      <a class="app-card" href="/maybe/" id="maybe-card">
+        <div class="app-header">
+          <span class="app-name">Maybe Finance</span>
+          <span class="badge badge-live" id="maybe-badge">checking...</span>
+        </div>
+        <div class="app-desc">Personal finance tracking, budgeting, and wealth management. AI-powered with Groq LLM.</div>
+        <div class="app-status">Rails + Sidekiq + PostgreSQL + Redis</div>
+      </a>
+      <div class="app-card" style="cursor: default; opacity: 0.6;">
+        <div class="app-header">
+          <span class="app-name">Portfolio</span>
+          <span class="badge badge-soon">coming soon</span>
+        </div>
+        <div class="app-desc">nanaamoako.dev &mdash; interactive master CV, AI CV generator, and project showcase.</div>
+        <div class="app-status">Next.js + TypeScript + MongoDB</div>
+      </div>
+    </div>
+
+    <!-- Services Table -->
+    <div class="section-title">Service Health</div>
+    <table class="services-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Image</th>
+          <th>Status</th>
+          <th>Port</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>web</td>
+          <td style="color:var(--text-muted)">maybe-personal:latest</td>
+          <td id="svc-web"><span class="dot yellow"></span>checking</td>
+          <td>3000</td>
+        </tr>
+        <tr>
+          <td>worker (Sidekiq)</td>
+          <td style="color:var(--text-muted)">maybe-personal:latest</td>
+          <td id="svc-worker"><span class="dot yellow"></span>checking</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>db (PostgreSQL)</td>
+          <td style="color:var(--text-muted)">postgres:16</td>
+          <td id="svc-db"><span class="dot yellow"></span>checking</td>
+          <td>5432 (internal)</td>
+        </tr>
+        <tr>
+          <td>redis</td>
+          <td style="color:var(--text-muted)">redis:latest</td>
+          <td id="svc-redis"><span class="dot yellow"></span>checking</td>
+          <td>6379 (internal)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>&copy; 2026 Nana Amoako &middot; <a href="https://nanaamoako.dev" target="_blank">nanaamoako.dev</a> &middot; Hosted on Google Cloud</p>
+    </div>
+  </div>
+
+  <script>
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('server-time').textContent =
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      document.getElementById('server-date').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Health check — pings the Maybe app
+    async function checkMaybe() {
+      try {
+        const res = await fetch('/maybe/', { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+        const ok = res.ok || res.status === 302 || res.status === 301;
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+
+    function setStatus(id, up) {
+      const el = document.getElementById(id);
+      if (up) {
+        el.innerHTML = '<span class="dot green"></span>healthy';
+      } else {
+        el.innerHTML = '<span class="dot red"></span>down';
+      }
+    }
+
+    async function runChecks() {
+      const maybeUp = await checkMaybe();
+
+      // Maybe web
+      setStatus('svc-web', maybeUp);
+
+      // If web is up, db/redis/worker are likely up too (Rails won't boot without them)
+      setStatus('svc-db', maybeUp);
+      setStatus('svc-redis', maybeUp);
+      setStatus('svc-worker', maybeUp); // best guess — Sidekiq has no public endpoint
+
+      const badge = document.getElementById('maybe-badge');
+      if (maybeUp) {
+        badge.textContent = 'live';
+        badge.className = 'badge badge-live';
+      } else {
+        badge.textContent = 'down';
+        badge.className = 'badge';
+        badge.style.background = 'rgba(239,68,68,0.15)';
+        badge.style.color = 'var(--red)';
+      }
+
+      const running = maybeUp ? 4 : 0;
+      document.getElementById('services-count').textContent = `${running} / 4`;
+
+      const sysEl = document.getElementById('sys-status');
+      if (maybeUp) {
+        sysEl.innerHTML = '<span class="dot green"></span>Operational';
+      } else {
+        sysEl.innerHTML = '<span class="dot red"></span>Degraded';
+      }
+    }
+
+    runChecks();
+    setInterval(runChecks, 30000);
+  </script>
+</body>
+</html>

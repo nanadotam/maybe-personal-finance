@@ -46,9 +46,9 @@ class Family::AutoCategorizer
   private
     attr_reader :family, :transaction_ids
 
-    # For now, OpenAI only, but this should work with any LLM concept provider
+    # For now, Groq only, but this should work with any LLM concept provider
     def llm_provider
-      Provider::Registry.get_provider(:openai)
+      Provider::Registry.get_provider(:groq)
     end
 
     def user_categories_input

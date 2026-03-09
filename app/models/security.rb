@@ -1,9 +1,6 @@
 class Security < ApplicationRecord
   include Provided
-<<<<<<< HEAD
-=======
-  include PriceCaching
->>>>>>> 6b5cab33 (Initial commit)
+
 
   before_validation :upcase_symbols
 

@@ -3,12 +3,10 @@ class Setting < RailsSettings::Base
   cache_prefix { "v1" }
 
   field :synth_api_key, type: :string, default: ENV["SYNTH_API_KEY"]
-<<<<<<< HEAD
-=======
   field :exchangerate_api_key, type: :string, default: ENV["EXCHANGERATE_API_KEY"]
   field :fmp_api_key, type: :string, default: ENV["FMP_API_KEY"]
->>>>>>> 6b5cab33 (Initial commit)
-  field :openai_access_token, type: :string, default: ENV["OPENAI_ACCESS_TOKEN"]
+
+  field :groq_api_key, type: :string, default: ENV["GROQ_API_KEY"]
 
   field :require_invite_for_signup, type: :boolean, default: false
   field :require_email_confirmation, type: :boolean, default: ENV.fetch("REQUIRE_EMAIL_CONFIRMATION", "true") == "true"

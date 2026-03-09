@@ -1,17 +1,21 @@
-class Provider::Openai < Provider
+class Provider::Groq < Provider
   include LlmConcept
 
-  # Subclass so errors caught in this provider are raised as Provider::Openai::Error
+  # Subclass so errors caught in this provider are raised as Provider::Groq::Error
   Error = Class.new(Provider::Error)
 
-  MODELS = %w[gpt-4.1]
+  # Models available on Groq's fast inference API (as of March 2026)
+  MODELS = %w[llama-3.1-8b-instant llama-3.3-70b-versatile]
 
   def initialize(access_token)
-    @client = ::OpenAI::Client.new(access_token: access_token)
+    @client = ::OpenAI::Client.new(
+      access_token: access_token,
+      uri_base: "https://api.groq.com/openai/v1"
+    )
   end
 
   def supports_model?(model)
-    MODELS.include?(model)
+    true
   end
 
   def auto_categorize(transactions: [], user_categories: [])
@@ -42,40 +46,48 @@ class Provider::Openai < Provider
     with_provider_response do
       chat_config = ChatConfig.new(
         functions: functions,
-        function_results: function_results
+        function_results: function_results,
+        instructions: instructions
       )
 
       collected_chunks = []
 
-      # Proxy that converts raw stream to "LLM Provider concept" stream
-      stream_proxy = if streamer.present?
-        proc do |chunk|
+      if streamer.present?
+        # Streaming via Chat Completions SSE
+        stream_proc = proc do |chunk, _bytesize|
           parsed_chunk = ChatStreamParser.new(chunk).parsed
-
           unless parsed_chunk.nil?
             streamer.call(parsed_chunk)
             collected_chunks << parsed_chunk
           end
         end
-      else
-        nil
-      end
 
-      raw_response = client.responses.create(parameters: {
-        model: model,
-        input: chat_config.build_input(prompt),
-        instructions: instructions,
-        tools: chat_config.tools,
-        previous_response_id: previous_response_id,
-        stream: stream_proxy
-      })
+        client.chat(parameters: {
+          model: model,
+          messages: chat_config.build_messages(prompt),
+          tools: chat_config.tools.presence,
+          stream: stream_proc
+        }.compact)
 
-      # If streaming, Ruby OpenAI does not return anything, so to normalize this method's API, we search
-      # for the "response chunk" in the stream and return it (it is already parsed)
-      if stream_proxy.present?
-        response_chunk = collected_chunks.find { |chunk| chunk.type == "response" }
-        response_chunk.data
+        # Reconstruct the full text from streamed deltas
+        full_text = collected_chunks
+          .select { |c| c.type == "output_text" }
+          .map(&:data)
+          .join
+
+        ChatResponse.new(
+          id: nil,
+          model: model,
+          messages: [ ChatMessage.new(id: nil, output_text: full_text) ],
+          function_requests: []
+        )
       else
+        raw_response = client.chat(parameters: {
+          model: model,
+          messages: chat_config.build_messages(prompt),
+          tools: chat_config.tools.presence
+        }.compact)
+
         ChatParser.new(raw_response).parsed
       end
     end
@@ -83,4 +95,7 @@ class Provider::Openai < Provider
 
   private
     attr_reader :client
+
+    ChatResponse = Provider::LlmConcept::ChatResponse
+    ChatMessage  = Provider::LlmConcept::ChatMessage
 end

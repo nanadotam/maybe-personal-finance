@@ -1,4 +1,4 @@
-class Provider::Openai::AutoCategorizer
+class Provider::Groq::AutoCategorizer
   def initialize(client, transactions: [], user_categories: [])
     @client = client
     @transactions = transactions
@@ -6,21 +6,16 @@ class Provider::Openai::AutoCategorizer
   end
 
   def auto_categorize
-    response = client.responses.create(parameters: {
-      model: "gpt-4.1-mini",
-      input: [ { role: "developer", content: developer_message } ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "auto_categorize_personal_finance_transactions",
-          strict: true,
-          schema: json_schema
-        }
-      },
-      instructions: instructions
+    response = client.chat(parameters: {
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: instructions },
+        { role: "user", content: developer_message }
+      ],
+      response_format: { type: "json_object" }
     })
 
-    Rails.logger.info("Tokens used to auto-categorize transactions: #{response.dig("usage").dig("total_tokens")}")
+    Rails.logger.info("Tokens used to auto-categorize transactions: #{response.dig("usage", "total_tokens")}")
 
     build_response(extract_categorizations(response))
   end
@@ -40,45 +35,14 @@ class Provider::Openai::AutoCategorizer
     end
 
     def normalize_category_name(category_name)
-      return nil if category_name == "null"
-
+      return nil if category_name == "null" || category_name.blank?
       category_name
     end
 
     def extract_categorizations(response)
-      response_json = JSON.parse(response.dig("output")[0].dig("content")[0].dig("text"))
-      response_json.dig("categorizations")
-    end
-
-    def json_schema
-      {
-        type: "object",
-        properties: {
-          categorizations: {
-            type: "array",
-            description: "An array of auto-categorizations for each transaction",
-            items: {
-              type: "object",
-              properties: {
-                transaction_id: {
-                  type: "string",
-                  description: "The internal ID of the original transaction",
-                  enum: transactions.map { |t| t[:id] }
-                },
-                category_name: {
-                  type: "string",
-                  description: "The matched category name of the transaction, or null if no match",
-                  enum: [ *user_categories.map { |c| c[:name] }, "null" ]
-                }
-              },
-              required: [ "transaction_id", "category_name" ],
-              additionalProperties: false
-            }
-          }
-        },
-        required: [ "categorizations" ],
-        additionalProperties: false
-      }
+      content = response.dig("choices", 0, "message", "content")
+      response_json = JSON.parse(content)
+      response_json.dig("categorizations") || []
     end
 
     def developer_message
@@ -89,7 +53,8 @@ class Provider::Openai::AutoCategorizer
         #{user_categories.to_json}
         ```
 
-        Use the available categories to auto-categorize the following transactions:
+        Use the available categories to auto-categorize the following transactions.
+        Return a JSON object with a "categorizations" array:
 
         ```json
         #{transactions.to_json}
@@ -115,6 +80,9 @@ class Provider::Openai::AutoCategorizer
         - Each transaction has varying metadata that can be used to determine the category
           - Note: "hint" comes from 3rd party aggregators and typically represents a category name that
             may or may not match any of the user-supplied categories
+
+        Return ONLY valid JSON with this structure:
+        {"categorizations": [{"transaction_id": "...", "category_name": "...or null"}]}
       INSTRUCTIONS
     end
 end

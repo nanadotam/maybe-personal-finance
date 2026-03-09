@@ -40,8 +40,6 @@ class Provider::Registry
         Provider::Synth.new(api_key)
       end
 
-<<<<<<< HEAD
-=======
       def exchangerate_api
         api_key = ENV.fetch("EXCHANGERATE_API_KEY", Setting.exchangerate_api_key)
 
@@ -57,7 +55,7 @@ class Provider::Registry
         Provider::FinancialModelingPrep.new(api_key)
       end
 
->>>>>>> 6b5cab33 (Initial commit)
+
       def plaid_us
         config = Rails.application.config.plaid
 
@@ -78,12 +76,12 @@ class Provider::Registry
         Provider::Github.new
       end
 
-      def openai
-        access_token = ENV.fetch("OPENAI_ACCESS_TOKEN", Setting.openai_access_token)
+      def groq
+        access_token = ENV.fetch("GROQ_API_KEY", Setting.groq_api_key)
 
         return nil unless access_token.present?
 
-        Provider::Openai.new(access_token)
+        Provider::Groq.new(access_token)
       end
   end
 
@@ -110,25 +108,13 @@ class Provider::Registry
     def available_providers
       case concept
       when :exchange_rates
-<<<<<<< HEAD
-        %i[synth]
-      when :securities
-        %i[synth]
-      when :llm
-        %i[openai]
-      else
-        %i[synth plaid_us plaid_eu github openai]
-=======
-        # Prioritize new providers, fallback to synth if available
         %i[exchangerate_api synth]
       when :securities
-        # Prioritize new providers, fallback to synth if available
         %i[financial_modeling_prep synth]
       when :llm
-        %i[openai]
+        %i[groq]
       else
-        %i[exchangerate_api financial_modeling_prep synth plaid_us plaid_eu github openai]
->>>>>>> 6b5cab33 (Initial commit)
+        %i[exchangerate_api financial_modeling_prep synth plaid_us plaid_eu github groq]
       end
     end
 end

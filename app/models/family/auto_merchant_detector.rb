@@ -60,17 +60,13 @@ class Family::AutoMerchantDetector
   private
     attr_reader :family, :transaction_ids
 
-    # For now, OpenAI only, but this should work with any LLM concept provider
+    # For now, Groq only, but this should work with any LLM concept provider
     def llm_provider
-      Provider::Registry.get_provider(:openai)
+      Provider::Registry.get_provider(:groq)
     end
 
     def default_logo_provider_url
-<<<<<<< HEAD
       "https://logo.synthfinance.com"
-=======
-      "https://logo.clearbit.com"
->>>>>>> 6b5cab33 (Initial commit)
     end
 
     def user_merchants_input

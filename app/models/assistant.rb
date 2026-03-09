@@ -46,9 +46,9 @@ class Assistant
     end
 
     responder.on(:response) do |data|
-      update_thinking("Analyzing your data...")
-
       if data[:function_tool_calls].present?
+        fn_names = data[:function_tool_calls].map(&:function_name).join(", ")
+        update_thinking("Fetching your data (#{fn_names})...")
         assistant_message.tool_calls = data[:function_tool_calls]
         latest_response_id = data[:id]
       else
@@ -58,8 +58,11 @@ class Assistant
 
     responder.respond(previous_response_id: latest_response_id)
   rescue => e
-    stop_thinking
+    Rails.logger.error("[Assistant] Error responding to message: #{e.class}: #{e.message}")
+    Rails.logger.error(e.backtrace&.first(10)&.join("\n"))
     chat.add_error(e)
+  ensure
+    stop_thinking
   end
 
   private

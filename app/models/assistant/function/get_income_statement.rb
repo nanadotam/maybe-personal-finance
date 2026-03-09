@@ -10,6 +10,11 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
       <<~INSTRUCTIONS
         Use this to get income and expense insights by category, for a specific time period
 
+        Use detail_level to control how much category data is returned:
+        - "summary": totals + top 5 categories only (lowest token usage)
+        - "standard": all categories, no subcategories (default)
+        - "detailed": all categories with subcategory breakdowns
+
         This is great for answering questions like:
         - What is the user's net income for the current month?
         - What are the user's spending habits?
@@ -27,7 +32,12 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
     end
   end
 
+  def strict_mode?
+    false
+  end
+
   def call(params = {})
+    level = params.fetch("detail_level", "summary")
     period = Period.custom(start_date: Date.parse(params["start_date"]), end_date: Date.parse(params["end_date"]))
     income_data = family.income_statement.income_totals(period: period)
     expense_data = family.income_statement.expense_totals(period: period)
@@ -40,11 +50,11 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
       },
       income: {
         total: format_money(income_data.total),
-        by_category: to_ai_category_totals(income_data.category_totals)
+        by_category: to_ai_category_totals(income_data.category_totals, level)
       },
       expense: {
         total: format_money(expense_data.total),
-        by_category: to_ai_category_totals(expense_data.category_totals)
+        by_category: to_ai_category_totals(expense_data.category_totals, level)
       },
       insights: get_insights(income_data, expense_data)
     }
@@ -61,6 +71,11 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
         end_date: {
           type: "string",
           description: "End date for aggregation period in YYYY-MM-DD format"
+        },
+        detail_level: {
+          type: "string",
+          enum: %w[summary standard detailed],
+          description: "Controls category detail depth. Default: summary"
         }
       }
     )
@@ -78,7 +93,7 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
       rate.round(2)
     end
 
-    def to_ai_category_totals(category_totals)
+    def to_ai_category_totals(category_totals, level)
       hierarchical_groups = category_totals.group_by { |ct| ct.category.parent_id }.then do |grouped|
         root_category_totals = grouped[nil] || []
 
@@ -91,35 +106,40 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
         end
       end
 
-      hierarchical_groups.sort_by { |name, data| -data.dig(:category_total).total }.map do |name, data|
-        {
+      sorted = hierarchical_groups.sort_by { |name, data| -data.dig(:category_total).total }
+
+      # Limit to top 5 categories for summary
+      sorted = sorted.first(5) if level == "summary"
+
+      sorted.map do |name, data|
+        entry = {
           name: name,
           total: format_money(data.dig(:category_total).total),
-          percentage_of_total: number_to_percentage(data.dig(:category_total).weight, precision: 1),
-          subcategory_totals: data.dig(:subcategory_totals).map do |st|
+          percentage_of_total: number_to_percentage(data.dig(:category_total).weight, precision: 1)
+        }
+
+        # Only include subcategories for detailed level
+        if level == "detailed"
+          entry[:subcategory_totals] = data.dig(:subcategory_totals).map do |st|
             {
               name: st.category.name,
               total: format_money(st.total),
               percentage_of_total: number_to_percentage(st.weight, precision: 1)
             }
           end
-        }
+        end
+
+        entry
       end
     end
 
     def get_insights(income_data, expense_data)
       net_income = income_data.total - expense_data.total
       savings_rate = calculate_savings_rate(income_data.total, expense_data.total)
-      median_monthly_income = family.income_statement.median_income
-      median_monthly_expenses = family.income_statement.median_expense
-      avg_monthly_expenses = family.income_statement.avg_expense
 
       {
         net_income: format_money(net_income),
-        savings_rate: number_to_percentage(savings_rate),
-        median_monthly_income: format_money(median_monthly_income),
-        median_monthly_expenses: format_money(median_monthly_expenses),
-        avg_monthly_expenses: format_money(avg_monthly_expenses)
+        savings_rate: number_to_percentage(savings_rate)
       }
     end
 end

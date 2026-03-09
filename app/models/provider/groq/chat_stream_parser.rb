@@ -8,6 +8,8 @@ class Provider::Groq::ChatStreamParser
   # The ruby-openai gem yields raw Hash chunks from the SSE stream.
   # For chat completions, a delta chunk looks like:
   #   { "choices" => [{ "delta" => { "content" => "..." } }] }
+  # A tool_call delta chunk looks like:
+  #   { "choices" => [{ "delta" => { "tool_calls" => [{ "index" => 0, "id" => "...", "function" => { "name" => "...", "arguments" => "..." } }] } }] }
   # A finish chunk has finish_reason set.
   def parsed
     return nil unless object.is_a?(Hash)
@@ -21,8 +23,9 @@ class Provider::Groq::ChatStreamParser
 
     if delta["content"].present?
       Chunk.new(type: "output_text", data: delta["content"])
+    elsif delta["tool_calls"].present?
+      Chunk.new(type: "tool_call_delta", data: delta["tool_calls"])
     elsif finish.present?
-      # Signal end-of-stream; groq.rb handles assembly from collected deltas
       Chunk.new(type: "finish", data: finish)
     end
   end

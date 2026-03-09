@@ -1,11 +1,9 @@
 class Assistant::Function::GetTransactions < Assistant::Function
   include Pagy::Backend
 
-  class << self
-    def default_page_size
-      50
-    end
+  PAGE_SIZES = { "summary" => 5, "standard" => 15, "detailed" => 30 }.freeze
 
+  class << self
     def name
       "get_transactions"
     end
@@ -13,6 +11,11 @@ class Assistant::Function::GetTransactions < Assistant::Function
     def description
       <<~INSTRUCTIONS
         Use this to search user's transactions by using various optional filters.
+
+        Use detail_level to control how many transactions are returned per page:
+        - "summary": 5 per page (lowest token usage)
+        - "standard": 15 per page (default)
+        - "detailed": 30 per page
 
         This function is great for things like:
         - Finding specific transactions
@@ -27,7 +30,7 @@ class Assistant::Function::GetTransactions < Assistant::Function
 
         - `total_pages`: The total number of pages of results
         - `page`: The current page of results
-        - `page_size`: The number of results per page (this will always be #{default_page_size})
+        - `page_size`: The number of results per page
         - `total_results`: The total number of results for the given filters
         - `total_income`: The total income for the given filters
         - `total_expenses`: The total expenses for the given filters
@@ -68,7 +71,7 @@ class Assistant::Function::GetTransactions < Assistant::Function
 
   def params_schema
     build_schema(
-      required: [ "order", "page", "page_size" ],
+      required: [ "order", "page" ],
       properties: {
         page: {
           type: "integer",
@@ -77,6 +80,11 @@ class Assistant::Function::GetTransactions < Assistant::Function
         order: {
           enum: [ "asc", "desc" ],
           description: "Order of the transactions by date"
+        },
+        detail_level: {
+          type: "string",
+          enum: %w[summary standard detailed],
+          description: "Controls how many transactions per page. Default: summary"
         },
         search: {
           type: "string",
@@ -132,13 +140,14 @@ class Assistant::Function::GetTransactions < Assistant::Function
   end
 
   def call(params = {})
-    search_params = params.except("order", "page")
+    level = params.fetch("detail_level", "summary")
+    page_size = PAGE_SIZES.fetch(level, PAGE_SIZES["summary"])
+    search_params = params.except("order", "page", "detail_level")
 
     search = Transaction::Search.new(family, filters: search_params)
     transactions_query = search.transactions_scope
     pagy_query = params["order"] == "asc" ? transactions_query.chronological : transactions_query.reverse_chronological
 
-    # By default, we give a small page size to force the AI to use filters effectively and save on tokens
     pagy, paginated_transactions = pagy(
       pagy_query.includes(
         { entry: :account },
@@ -147,7 +156,7 @@ class Assistant::Function::GetTransactions < Assistant::Function
         transfer_as_inflow: { outflow_transaction: { entry: :account } }
       ),
       page: params["page"] || 1,
-      limit: default_page_size
+      limit: page_size
     )
 
     totals = search.totals
@@ -156,15 +165,11 @@ class Assistant::Function::GetTransactions < Assistant::Function
       entry = txn.entry
       {
         date: entry.date,
-        amount: entry.amount.abs,
-        currency: entry.currency,
         formatted_amount: entry.amount_money.abs.format,
         classification: entry.amount < 0 ? "income" : "expense",
         account: entry.account.name,
         category: txn.category&.name,
-        merchant: txn.merchant&.name,
-        tags: txn.tags.map(&:name),
-        is_transfer: txn.transfer?
+        merchant: txn.merchant&.name
       }
     end
 
@@ -172,15 +177,10 @@ class Assistant::Function::GetTransactions < Assistant::Function
       transactions: normalized_transactions,
       total_results: pagy.count,
       page: pagy.page,
-      page_size: default_page_size,
+      page_size: page_size,
       total_pages: pagy.pages,
       total_income: totals.income_money.format,
       total_expenses: totals.expense_money.format
     }
   end
-
-  private
-    def default_page_size
-      self.class.default_page_size
-    end
 end

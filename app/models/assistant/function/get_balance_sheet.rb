@@ -10,36 +10,60 @@ class Assistant::Function::GetBalanceSheet < Assistant::Function
       <<~INSTRUCTIONS
         Use this to get the user's balance sheet with varying amounts of historical data.
 
+        Use detail_level to control how much data is returned:
+        - "summary": current totals only (lowest token usage)
+        - "standard": 6 months of net worth history (default)
+        - "detailed": 1 year of history for net worth, assets, and liabilities
+
         This is great for answering questions like:
-        - What is the user's net worth?  What is it composed of?
+        - What is the user's net worth? What is it composed of?
         - How has the user's wealth changed over time?
       INSTRUCTIONS
     end
   end
 
+  def strict_mode?
+    false
+  end
+
+  def params_schema
+    build_schema(
+      properties: {
+        detail_level: {
+          type: "string",
+          enum: %w[summary standard detailed],
+          description: "Controls how much historical data to return. Default: summary"
+        }
+      }
+    )
+  end
+
   def call(params = {})
-    observation_start_date = [ 5.years.ago.to_date, family.oldest_entry_date ].max
+    level = params.fetch("detail_level", "summary")
 
-    period = Period.custom(start_date: observation_start_date, end_date: Date.current)
-
-    {
+    result = {
       as_of_date: Date.current,
-      oldest_account_start_date: family.oldest_entry_date,
       currency: family.currency,
-      net_worth: {
-        current: family.balance_sheet.net_worth_money.format,
-        monthly_history: historical_data(period)
-      },
-      assets: {
-        current: family.balance_sheet.assets.total_money.format,
-        monthly_history: historical_data(period, classification: "asset")
-      },
-      liabilities: {
-        current: family.balance_sheet.liabilities.total_money.format,
-        monthly_history: historical_data(period, classification: "liability")
-      },
+      net_worth: { current: family.balance_sheet.net_worth_money.format },
+      assets: { current: family.balance_sheet.assets.total_money.format },
+      liabilities: { current: family.balance_sheet.liabilities.total_money.format },
       insights: insights_data
     }
+
+    unless level == "summary"
+      lookback = level == "detailed" ? 1.year : 6.months
+      observation_start_date = [ lookback.ago.to_date, family.oldest_entry_date ].max
+      period = Period.custom(start_date: observation_start_date, end_date: Date.current)
+
+      result[:net_worth][:monthly_history] = historical_data(period)
+
+      if level == "detailed"
+        result[:assets][:monthly_history] = historical_data(period, classification: "asset")
+        result[:liabilities][:monthly_history] = historical_data(period, classification: "liability")
+      end
+    end
+
+    result
   end
 
   private

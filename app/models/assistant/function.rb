@@ -47,12 +47,18 @@ class Assistant::Function
     attr_reader :user
 
     def build_schema(properties: {}, required: [])
-      {
-        type: "object",
-        properties: properties,
-        required: required,
-        additionalProperties: false
-      }
+      schema = { type: "object" }
+
+      if properties.present?
+        # Remove properties with empty enum arrays (invalid JSON Schema)
+        cleaned = properties.reject do |_, v|
+          v.is_a?(Hash) && v[:items].is_a?(Hash) && v[:items][:enum].is_a?(Array) && v[:items][:enum].empty?
+        end
+        schema[:properties] = cleaned if cleaned.present?
+      end
+
+      schema[:required] = required if required.present?
+      schema
     end
 
     def family_account_names

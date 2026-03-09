@@ -74,6 +74,7 @@ module Assistant::Configurable
 
           - Use the functions available to you to get user financial data and enhance your responses
           - For functions that require dates, use the current date as your reference point: #{Date.current}
+          - **IMPORTANT: Always use detail_level "summary" by default** to minimize token usage. Only use "standard" or "detailed" when the user explicitly asks for more detail, historical trends, or breakdowns.
           - If you suspect that you do not have enough data to 100% accurately answer, be transparent about it and state exactly what
             the data you're presenting represents and what context it is in (i.e. date range, account, etc.)
         PROMPT

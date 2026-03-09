@@ -5,14 +5,7 @@ class Assistant::Function::GetAccounts < Assistant::Function
     end
 
     def description
-      <<~DESC
-        Use this to see what accounts the user has along with their current and historical balances.
-
-        Use detail_level to control how much data is returned:
-        - "summary": current balances only (lowest token usage)
-        - "standard": 3 months of monthly history (default)
-        - "detailed": 1 year of monthly history
-      DESC
+      "Get user accounts with balances. detail_level controls history depth."
     end
   end
 
@@ -23,11 +16,7 @@ class Assistant::Function::GetAccounts < Assistant::Function
   def params_schema
     build_schema(
       properties: {
-        detail_level: {
-          type: "string",
-          enum: %w[summary standard detailed],
-          description: "Controls how much historical data to return. Default: summary"
-        }
+        detail_level: { type: "string", enum: %w[summary standard detailed] }
       }
     )
   end

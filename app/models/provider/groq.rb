@@ -56,86 +56,71 @@ class Provider::Groq < Provider
 
       Rails.logger.info("[Groq] Sending chat request: model=#{model}, messages=#{messages.size}, tools=#{tools&.size || 0}, function_results=#{function_results.size}")
 
-      if streamer.present?
-        # Streaming via Chat Completions SSE
-        full_text = ""
-        tool_calls_by_index = {}
+      raw_response = client.chat(parameters: {
+        model: model,
+        messages: messages,
+        tools: tools,
+        tool_choice: tools.present? ? "auto" : nil
+      }.compact)
 
-        stream_proc = proc do |chunk, _bytesize|
-          parsed_chunk = ChatStreamParser.new(chunk).parsed
-          next unless parsed_chunk
-
-          case parsed_chunk.type
-          when "output_text"
-            streamer.call(parsed_chunk)
-            full_text << parsed_chunk.data
-          when "tool_call_delta"
-            # Accumulate tool call deltas (arguments arrive in chunks)
-            parsed_chunk.data.each do |tc_delta|
-              idx = tc_delta["index"]
-              tool_calls_by_index[idx] ||= { "id" => nil, "function" => { "name" => "", "arguments" => "" } }
-              tool_calls_by_index[idx]["id"] = tc_delta["id"] if tc_delta["id"].present?
-              tool_calls_by_index[idx]["function"]["name"] = tc_delta.dig("function", "name") if tc_delta.dig("function", "name").present?
-              tool_calls_by_index[idx]["function"]["arguments"] << tc_delta.dig("function", "arguments").to_s
-            end
-          end
-        end
-
-        raw = client.chat(parameters: {
-          model: model,
-          messages: messages,
-          tools: tools,
-          stream: stream_proc
-        }.compact)
-
-        # Check if the API returned an error (stream_proc never called)
-        if raw.is_a?(Hash) && raw["error"].present?
-          raise Error, "Groq API error: #{raw['error']['message'] || raw['error']}"
-        end
-
-        # Log raw response if stream produced nothing (helps debug silent failures)
-        if full_text.empty? && tool_calls_by_index.empty?
-          Rails.logger.warn("[Groq] Stream produced no output. Raw response: #{raw.inspect.truncate(500)}")
-        end
-
-        # Build function requests from accumulated tool call deltas
-        fn_requests = tool_calls_by_index.values.map do |tc|
-          ChatFunctionRequest.new(
-            id: tc["id"],
-            call_id: tc["id"],
-            function_name: tc.dig("function", "name"),
-            function_args: tc.dig("function", "arguments")
-          )
-        end
-
-        Rails.logger.info("[Groq] Stream complete: text_length=#{full_text.length}, tool_calls=#{fn_requests.size}#{fn_requests.any? ? " (#{fn_requests.map(&:function_name).join(', ')})" : ''}")
-
-        # Build a synthetic final ChatResponse and emit it so the Responder can finalize
-        final_response = ChatResponse.new(
-          id: nil,
-          model: model,
-          messages: [ ChatMessage.new(id: nil, output_text: full_text) ],
-          function_requests: fn_requests
-        )
-        streamer.call(ChatStreamChunk.new(type: "response", data: final_response))
-        final_response
-      else
-        raw_response = client.chat(parameters: {
-          model: model,
-          messages: chat_config.build_messages(prompt),
-          tools: chat_config.tools.presence
-        }.compact)
-
-        ChatParser.new(raw_response).parsed
+      if raw_response.is_a?(Hash) && raw_response["error"].present?
+        error_message = raw_response["error"]["message"] || raw_response["error"].to_s
+        failed_gen = raw_response.dig("error", "failed_generation")
+        Rails.logger.error("[Groq] API error: #{error_message}")
+        Rails.logger.error("[Groq] Failed generation: #{failed_gen}") if failed_gen.present?
+        raise Error, friendly_error_message(error_message)
       end
+
+      parsed = ChatParser.new(raw_response).parsed
+
+      Rails.logger.info("[Groq] Response: text_length=#{parsed.messages.first&.output_text&.length || 0}, tool_calls=#{parsed.function_requests.size}#{parsed.function_requests.any? ? " (#{parsed.function_requests.map(&:function_name).join(', ')})" : ''}")
+
+      # Emit events through the streamer so the Responder can update the UI
+      if streamer.present?
+        output_text = parsed.messages.first&.output_text
+        if output_text.present?
+          streamer.call(ChatStreamChunk.new(type: "output_text", data: output_text))
+        end
+        streamer.call(ChatStreamChunk.new(type: "response", data: parsed))
+      end
+
+      parsed
     end
   end
 
   private
     attr_reader :client
 
-    ChatResponse        = Provider::LlmConcept::ChatResponse
-    ChatMessage         = Provider::LlmConcept::ChatMessage
-    ChatStreamChunk     = Provider::LlmConcept::ChatStreamChunk
-    ChatFunctionRequest = Provider::LlmConcept::ChatFunctionRequest
+    ChatResponse    = Provider::LlmConcept::ChatResponse
+    ChatStreamChunk = Provider::LlmConcept::ChatStreamChunk
+
+    def friendly_error_message(raw_message)
+      if raw_message.match?(/rate limit/i)
+        wait_match = raw_message.match(/try again in (\d+m[\d.]+s|\d+[\d.]*s)/i)
+        wait_time = wait_match ? wait_match[1] : "a few minutes"
+        "Rate limit reached — the AI needs to cool down. Try again in #{wait_time}."
+      elsif raw_message.match?(/too many requests/i)
+        "Too many requests — please wait a moment before trying again."
+      elsif raw_message.match?(/invalid api key|authentication/i)
+        "AI provider authentication failed. Please check your Groq API key in settings."
+      elsif raw_message.match?(/model.*not found|does not exist/i)
+        "The selected AI model is not available. Please try a different model."
+      elsif raw_message.match?(/failed to call a function|failed_generation/i)
+        "The AI had trouble processing your request. Please try rephrasing your message."
+      else
+        raw_message
+      end
+    end
+
+    def default_error_transformer(error)
+      message = if error.is_a?(Faraday::Error) && error.response
+        body = error.response[:body]
+        raw = body.is_a?(Hash) ? (body.dig("error", "message") || body.to_s) : body.to_s
+        friendly_error_message(raw)
+      else
+        friendly_error_message(error.message)
+      end
+
+      Error.new(message)
+    end
 end

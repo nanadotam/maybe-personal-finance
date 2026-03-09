@@ -7,28 +7,7 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
     end
 
     def description
-      <<~INSTRUCTIONS
-        Use this to get income and expense insights by category, for a specific time period
-
-        Use detail_level to control how much category data is returned:
-        - "summary": totals + top 5 categories only (lowest token usage)
-        - "standard": all categories, no subcategories (default)
-        - "detailed": all categories with subcategory breakdowns
-
-        This is great for answering questions like:
-        - What is the user's net income for the current month?
-        - What are the user's spending habits?
-        - How much income or spending did the user have over a specific time period?
-
-        Simple example:
-
-        ```
-        get_income_statement({
-          start_date: "2024-01-01",
-          end_date: "2024-12-31"
-        })
-        ```
-      INSTRUCTIONS
+      "Get income/expense breakdown by category for a date range. detail_level controls category depth."
     end
   end
 
@@ -64,19 +43,9 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
     build_schema(
       required: [ "start_date", "end_date" ],
       properties: {
-        start_date: {
-          type: "string",
-          description: "Start date for aggregation period in YYYY-MM-DD format"
-        },
-        end_date: {
-          type: "string",
-          description: "End date for aggregation period in YYYY-MM-DD format"
-        },
-        detail_level: {
-          type: "string",
-          enum: %w[summary standard detailed],
-          description: "Controls category detail depth. Default: summary"
-        }
+        start_date: { type: "string", description: "YYYY-MM-DD" },
+        end_date: { type: "string", description: "YYYY-MM-DD" },
+        detail_level: { type: "string", enum: %w[summary standard detailed] }
       }
     )
   end

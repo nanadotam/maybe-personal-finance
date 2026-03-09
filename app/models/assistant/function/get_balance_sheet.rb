@@ -7,18 +7,7 @@ class Assistant::Function::GetBalanceSheet < Assistant::Function
     end
 
     def description
-      <<~INSTRUCTIONS
-        Use this to get the user's balance sheet with varying amounts of historical data.
-
-        Use detail_level to control how much data is returned:
-        - "summary": current totals only (lowest token usage)
-        - "standard": 6 months of net worth history (default)
-        - "detailed": 1 year of history for net worth, assets, and liabilities
-
-        This is great for answering questions like:
-        - What is the user's net worth? What is it composed of?
-        - How has the user's wealth changed over time?
-      INSTRUCTIONS
+      "Get net worth, assets, and liabilities. detail_level controls history depth."
     end
   end
 
@@ -29,11 +18,7 @@ class Assistant::Function::GetBalanceSheet < Assistant::Function
   def params_schema
     build_schema(
       properties: {
-        detail_level: {
-          type: "string",
-          enum: %w[summary standard detailed],
-          description: "Controls how much historical data to return. Default: summary"
-        }
+        detail_level: { type: "string", enum: %w[summary standard detailed] }
       }
     )
   end

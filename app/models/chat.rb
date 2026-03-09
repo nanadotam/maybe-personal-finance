@@ -47,6 +47,28 @@ class Chat < ApplicationRecord
     broadcast_append target: "messages", partial: "chats/error", locals: { chat: self }
   end
 
+  def friendly_error_message
+    return "Something went wrong. Please try again." if error.blank?
+
+    # The error may be double-JSON-encoded, so parse until we get a non-string
+    message = extract_error_message(error)
+
+    case message
+    when /rate limit|cool down/i
+      message
+    when /too many requests/i
+      message
+    when /authentication|api key/i
+      message
+    when /model.*not found/i
+      message
+    when /failed to call a function|failed_generation/i
+      "The AI had trouble processing your request. Please try rephrasing your message."
+    else
+      "Something went wrong. Please try again."
+    end
+  end
+
   def clear_error
     update! error: nil
     broadcast_remove target: "chat-error"
@@ -72,4 +94,21 @@ class Chat < ApplicationRecord
       messages.where(type: [ "UserMessage", "AssistantMessage" ])
     end
   end
+
+  private
+    def extract_error_message(raw)
+      # Unwrap nested JSON encoding (e.g. to_json on an object that was already serialized)
+      value = raw
+      3.times do
+        parsed = JSON.parse(value) rescue break
+        if parsed.is_a?(Hash)
+          return parsed["message"] || parsed["error"] || value
+        elsif parsed.is_a?(String)
+          value = parsed
+        else
+          break
+        end
+      end
+      value
+    end
 end

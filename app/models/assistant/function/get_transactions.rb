@@ -9,59 +9,7 @@ class Assistant::Function::GetTransactions < Assistant::Function
     end
 
     def description
-      <<~INSTRUCTIONS
-        Use this to search user's transactions by using various optional filters.
-
-        Use detail_level to control how many transactions are returned per page:
-        - "summary": 5 per page (lowest token usage)
-        - "standard": 15 per page (default)
-        - "detailed": 30 per page
-
-        This function is great for things like:
-        - Finding specific transactions
-        - Getting basic stats about a small group of transactions
-
-        This function is not great for:
-        - Large time periods (use the get_income_statement function for this)
-
-        Note on pagination:
-
-        This function can be paginated.  You can expect the following properties in the response:
-
-        - `total_pages`: The total number of pages of results
-        - `page`: The current page of results
-        - `page_size`: The number of results per page
-        - `total_results`: The total number of results for the given filters
-        - `total_income`: The total income for the given filters
-        - `total_expenses`: The total expenses for the given filters
-
-        Simple example (transactions from the last 30 days):
-
-        ```
-        get_transactions({
-          page: 1,
-          start_date: "#{30.days.ago.to_date}",
-          end_date: "#{Date.current}"
-        })
-        ```
-
-        More complex example (various filters):
-
-        ```
-        get_transactions({
-          page: 1,
-          search: "mcdonalds",
-          accounts: ["Checking", "Savings"],
-          start_date: "#{30.days.ago.to_date}",
-          end_date: "#{Date.current}",
-          categories: ["Restaurants"],
-          merchants: ["McDonald's"],
-          tags: ["Food"],
-          amount: "100",
-          amount_operator: "less"
-        })
-        ```
-      INSTRUCTIONS
+      "Search and filter user transactions. Paginated. For large time periods, use get_income_statement instead."
     end
   end
 
@@ -73,68 +21,18 @@ class Assistant::Function::GetTransactions < Assistant::Function
     build_schema(
       required: [ "order", "page" ],
       properties: {
-        page: {
-          type: "integer",
-          description: "Page number"
-        },
-        order: {
-          enum: [ "asc", "desc" ],
-          description: "Order of the transactions by date"
-        },
-        detail_level: {
-          type: "string",
-          enum: %w[summary standard detailed],
-          description: "Controls how many transactions per page. Default: summary"
-        },
-        search: {
-          type: "string",
-          description: "Search for transactions by name"
-        },
-        amount: {
-          type: "string",
-          description: "Amount for transactions (must be used with amount_operator)"
-        },
-        amount_operator: {
-          type: "string",
-          description: "Operator for amount (must be used with amount)",
-          enum: [ "equal", "less", "greater" ]
-        },
-        start_date: {
-          type: "string",
-          description: "Start date for transactions in YYYY-MM-DD format"
-        },
-        end_date: {
-          type: "string",
-          description: "End date for transactions in YYYY-MM-DD format"
-        },
-        accounts: {
-          type: "array",
-          description: "Filter transactions by account name",
-          items: { enum: family_account_names },
-          minItems: 1,
-          uniqueItems: true
-        },
-        categories: {
-          type: "array",
-          description: "Filter transactions by category name",
-          items: { enum: family_category_names },
-          minItems: 1,
-          uniqueItems: true
-        },
-        merchants: {
-          type: "array",
-          description: "Filter transactions by merchant name",
-          items: { enum: family_merchant_names },
-          minItems: 1,
-          uniqueItems: true
-        },
-        tags: {
-          type: "array",
-          description: "Filter transactions by tag name",
-          items: { enum: family_tag_names },
-          minItems: 1,
-          uniqueItems: true
-        }
+        page: { type: "integer" },
+        order: { enum: %w[asc desc] },
+        detail_level: { type: "string", enum: %w[summary standard detailed] },
+        search: { type: "string", description: "Search by name" },
+        amount: { type: "string" },
+        amount_operator: { type: "string", enum: %w[equal less greater] },
+        start_date: { type: "string", description: "YYYY-MM-DD" },
+        end_date: { type: "string", description: "YYYY-MM-DD" },
+        accounts: { type: "array", items: { enum: family_account_names } },
+        categories: { type: "array", items: { enum: family_category_names } },
+        merchants: { type: "array", items: { enum: family_merchant_names } },
+        tags: { type: "array", items: { enum: family_tag_names } }
       }
     )
   end

@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maybe API Reference</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --bg-soft: #111115;
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-strong: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --blue: #38bdf8;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --code-bg: #0f172a;
+      --code-border: rgba(56, 189, 248, 0.2);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.10), transparent 22%),
+        linear-gradient(180deg, #0a0b10 0%, #09090b 100%);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+      padding: 28px;
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(9, 9, 11, 0.92));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(56, 189, 248, 0.05), transparent);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      margin-bottom: 16px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      border-radius: 999px;
+      color: #bae6fd;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 1;
+      letter-spacing: -0.06em;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      max-width: 760px;
+      color: #d4d4d8;
+      font-size: 1rem;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .stat {
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(12px);
+    }
+
+    .stat .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .stat .value {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .nav {
+      position: sticky;
+      top: 20px;
+      padding: 20px;
+      background: rgba(10, 10, 12, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      backdrop-filter: blur(14px);
+    }
+
+    .nav h2 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 0;
+      color: #e4e4e7;
+      font-size: 0.95rem;
+    }
+
+    .main {
+      display: grid;
+      gap: 20px;
+    }
+
+    .section {
+      padding: 24px;
+      background: rgba(10, 10, 12, 0.78);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .section h2 {
+      margin-bottom: 12px;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+
+    .section h3 {
+      margin: 20px 0 10px;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section p + p { margin-top: 10px; }
+
+    .kicker {
+      margin-bottom: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: #e4e4e7;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .callout {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .callout strong { color: var(--text); }
+    .callout.note { border-color: rgba(56, 189, 248, 0.25); }
+    .callout.warn { border-color: rgba(245, 158, 11, 0.25); }
+    .callout.danger { border-color: rgba(239, 68, 68, 0.25); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.94rem;
+    }
+
+    th {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9em;
+    }
+
+    .inline-code {
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 18px;
+      margin-top: 14px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.98));
+      border: 1px solid var(--code-border);
+      border-radius: 18px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .endpoint {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .endpoint:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .method {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      margin-right: 10px;
+    }
+
+    .get { background: rgba(56, 189, 248, 0.14); color: #7dd3fc; }
+    .post { background: rgba(34, 197, 94, 0.14); color: #86efac; }
+    .put, .patch { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+    .delete { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+
+    .endpoint-path {
+      font-size: 1rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    ul {
+      margin: 12px 0 0 18px;
+      color: #e4e4e7;
+    }
+
+    li + li { margin-top: 8px; }
+
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 1024px) {
+      .hero, .content, .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 18px 14px 48px; }
+      .hero, .section { padding: 18px; border-radius: 20px; }
+      .hero-meta { grid-template-columns: 1fr; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><span class="dot"></span>Maybe Finance API</div>
+        <h1>Reference docs for accounts, categories, transactions, auth, and AI workflows.</h1>
+        <p>
+          The Maybe API exposes family-scoped financial data over JSON with OAuth bearer tokens or API keys.
+          This reference covers the current <span class="inline-code">/api/v1</span> surface, including the
+          new category discovery endpoints and server-side <span class="inline-code">category_name</span>
+          resolution for transaction writes.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Version v1</span>
+          <span class="pill">JSON only</span>
+          <span class="pill">OAuth or API key</span>
+          <span class="pill">Read / read_write scopes</span>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div class="stat">
+          <div class="label">Base URL</div>
+          <div class="value"><code>/api/v1</code></div>
+        </div>
+        <div class="stat">
+          <div class="label">Authentication</div>
+          <div class="value">Bearer or X-Api-Key</div>
+        </div>
+        <div class="stat">
+          <div class="label">Primary resources</div>
+          <div class="value">Accounts, Categories, Transactions</div>
+        </div>
+        <div class="stat">
+          <div class="label">AI resources</div>
+          <div class="value">Chats, Messages</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="content">
+      <aside class="nav">
+        <h2>Contents</h2>
+        <a href="#overview">Overview</a>
+        <a href="#authentication">Authentication</a>
+        <a href="#rate-limits">Rate Limits</a>
+        <a href="#errors">Errors</a>
+        <a href="#pagination">Pagination</a>
+        <a href="#auth-endpoints">Auth Endpoints</a>
+        <a href="#accounts">Accounts</a>
+        <a href="#categories">Categories</a>
+        <a href="#transactions">Transactions</a>
+        <a href="#usage">Usage</a>
+        <a href="#chats">AI Chats</a>
+        <a href="#messages">AI Messages</a>
+        <a href="#examples">Examples</a>
+      </aside>
+
+      <main class="main">
+        <section class="section" id="overview">
+          <div class="kicker">Overview</div>
+          <h2>Design principles</h2>
+          <p>
+            All endpoints return JSON and are scoped to the authenticated user or their family. API responses
+            are designed for direct use by automation systems, mobile clients, and tools like Siri Shortcuts.
+          </p>
+          <div class="grid-2">
+            <div class="callout note">
+              <strong>Family-scoped access.</strong> Accounts, categories, and transactions are resolved from the
+              authenticated user’s family only. A valid ID from another family still returns <code>404</code>.
+            </div>
+            <div class="callout note">
+              <strong>Server-side category resolution.</strong> Transaction create and update endpoints accept
+              <code>category_name</code> in addition to <code>category_id</code>. This is useful when your client
+              only knows the category label, not the UUID.
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="authentication">
+          <div class="kicker">Authentication</div>
+          <h2>Use OAuth bearer tokens or API keys</h2>
+          <p>
+            The API supports two authentication methods. If both are sent, OAuth takes precedence over API key
+            authentication.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Header</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>OAuth 2.0</td>
+                <td><code>Authorization: Bearer &lt;token&gt;</code></td>
+                <td>Supports <code>read</code> and <code>read_write</code> scopes.</td>
+              </tr>
+              <tr>
+                <td>API key</td>
+                <td><code>X-Api-Key: &lt;key&gt;</code></td>
+                <td>Supports the same scope model and rate limit tracking.</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>curl -H "X-Api-Key: YOUR_API_KEY" \
+http://localhost:3000/api/v1/accounts
+
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+http://localhost:3000/api/v1/transactions</code></pre>
+          <div class="callout warn">
+            <strong>Scopes are hierarchical.</strong> <code>read_write</code> includes read access.
+            Write endpoints require <code>read_write</code>.
+          </div>
+        </section>
+
+        <section class="section" id="rate-limits">
+          <div class="kicker">Rate Limits</div>
+          <h2>API key requests include usage headers</h2>
+          <p>
+            API key requests are rate-limited and include rate-limit headers on successful responses. OAuth
+            requests authenticate successfully but do not currently expose the same detailed usage metadata.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Header</th>
+                <th>Description</th>
+                <th>Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>X-RateLimit-Limit</code></td>
+                <td>Total requests allowed in the current window</td>
+                <td><code>100</code></td>
+              </tr>
+              <tr>
+                <td><code>X-RateLimit-Remaining</code></td>
+                <td>Remaining requests in the current window</td>
+                <td><code>99</code></td>
+              </tr>
+              <tr>
+                <td><code>X-RateLimit-Reset</code></td>
+                <td>Seconds until the limit resets</td>
+                <td><code>3540</code></td>
+              </tr>
+              <tr>
+                <td><code>Retry-After</code></td>
+                <td>Returned when the limit is exceeded</td>
+                <td><code>3540</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="section" id="errors">
+          <div class="kicker">Errors</div>
+          <h2>Standard error shapes</h2>
+          <p>Most failures use a predictable JSON shape with an <code>error</code> key and a human-readable <code>message</code>.</p>
+          <pre><code>{
+  "error": "unauthorized",
+  "message": "Access token or API key is invalid, expired, or missing"
+}
+
+{
+  "error": "validation_failed",
+  "message": "Category could not be found",
+  "errors": ["Category 'Dining' was not found"]
+}</code></pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Error</th>
+                <th>When it happens</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>400</td>
+                <td><code>bad_request</code></td>
+                <td>Missing required parameters such as <code>refresh_token</code>.</td>
+              </tr>
+              <tr>
+                <td>401</td>
+                <td><code>unauthorized</code></td>
+                <td>Missing, expired, revoked, or invalid credentials.</td>
+              </tr>
+              <tr>
+                <td>403</td>
+                <td><code>insufficient_scope</code></td>
+                <td>The credential does not include the required scope.</td>
+              </tr>
+              <tr>
+                <td>404</td>
+                <td><code>not_found</code> or <code>record_not_found</code></td>
+                <td>The resource does not exist or does not belong to the current family.</td>
+              </tr>
+              <tr>
+                <td>422</td>
+                <td><code>validation_failed</code></td>
+                <td>The request payload is syntactically valid but fails business rules.</td>
+              </tr>
+              <tr>
+                <td>429</td>
+                <td><code>rate_limit_exceeded</code></td>
+                <td>The API key exceeded its current rate limit window.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="section" id="pagination">
+          <div class="kicker">Pagination</div>
+          <h2>List endpoints use page-based pagination</h2>
+          <p>
+            Resource list endpoints return a top-level collection and a <code>pagination</code> object. Most
+            endpoints default to 25 items per page and allow up to 100.
+          </p>
+          <pre><code>{
+  "pagination": {
+    "page": 1,
+    "per_page": 25,
+    "total_count": 14,
+    "total_pages": 1
+  }
+}</code></pre>
+        </section>
+
+        <section class="section" id="auth-endpoints">
+          <div class="kicker">Auth</div>
+          <h2>Authentication endpoints</h2>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/auth/signup</span></div>
+            <p class="subtle">Create a new user, family, mobile device, OAuth application, access token, and refresh token.</p>
+            <h3>Request body</h3>
+            <pre><code>{
+  "user": {
+    "email": "newuser@example.com",
+    "password": "SecurePass123!",
+    "first_name": "Nana",
+    "last_name": "Amoako"
+  },
+  "device": {
+    "device_id": "iphone-001",
+    "device_name": "Nana's iPhone",
+    "device_type": "ios",
+    "os_version": "17.0",
+    "app_version": "1.0.0"
+  },
+  "invite_code": "optional"
+}</code></pre>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/auth/login</span></div>
+            <p class="subtle">Authenticate an existing user, optionally with MFA, and issue fresh OAuth credentials.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/auth/refresh</span></div>
+            <p class="subtle">Exchange a valid refresh token for a new access token and refresh token pair.</p>
+            <pre><code>{
+  "refresh_token": "REFRESH_TOKEN",
+  "device": {
+    "device_id": "iphone-001"
+  }
+}</code></pre>
+          </div>
+        </section>
+
+        <section class="section" id="accounts">
+          <div class="kicker">Accounts</div>
+          <h2>List visible accounts for the current family</h2>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/accounts</span></div>
+            <p class="subtle">Returns visible accounts sorted alphabetically.</p>
+            <h3>Query parameters</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>page</code></td>
+                  <td>integer</td>
+                  <td>Page number. Defaults to <code>1</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>per_page</code></td>
+                  <td>integer</td>
+                  <td>Items per page. Defaults to <code>25</code>, max <code>100</code>.</td>
+                </tr>
+              </tbody>
+            </table>
+            <h3>Response example</h3>
+            <pre><code>{
+  "accounts": [
+    {
+      "id": "uuid",
+      "name": "Main Checking",
+      "balance": "$2,140.52",
+      "currency": "USD",
+      "classification": "asset",
+      "account_type": "depository"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 25,
+    "total_count": 1,
+    "total_pages": 1
+  }
+}</code></pre>
+          </div>
+        </section>
+
+        <section class="section" id="categories">
+          <div class="kicker">Categories</div>
+          <h2>Discover category IDs and hierarchy</h2>
+          <p>
+            Categories are now exposed over the REST API. This is especially useful for Siri Shortcuts and
+            automations that need to turn a category label into a stable UUID.
+          </p>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/categories</span></div>
+            <h3>Query parameters</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>classification</code></td>
+                  <td>string</td>
+                  <td>Filter to <code>income</code> or <code>expense</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>parent_id</code></td>
+                  <td>uuid</td>
+                  <td>Return only subcategories under a specific parent.</td>
+                </tr>
+                <tr>
+                  <td><code>roots</code></td>
+                  <td>boolean</td>
+                  <td>When <code>true</code>, return only root-level categories.</td>
+                </tr>
+                <tr>
+                  <td><code>search</code></td>
+                  <td>string</td>
+                  <td>Case-insensitive partial match on category name.</td>
+                </tr>
+                <tr>
+                  <td><code>page</code></td>
+                  <td>integer</td>
+                  <td>Page number. Defaults to <code>1</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>per_page</code></td>
+                  <td>integer</td>
+                  <td>Items per page. Defaults to <code>25</code>, max <code>100</code>.</td>
+                </tr>
+              </tbody>
+            </table>
+            <pre><code>curl -s -H "X-Api-Key: YOUR_API_KEY" \
+http://localhost:3000/api/v1/categories?roots=true | jq</code></pre>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/categories/:id</span></div>
+            <p class="subtle">Return a single category with hierarchy metadata.</p>
+            <pre><code>{
+  "id": "e8078475-37d2-46e1-b51a-bc3094f77748",
+  "name": "Food &amp; Drink",
+  "classification": "expense",
+  "color": "#eb5429",
+  "icon": "utensils",
+  "path": "Food &amp; Drink",
+  "parent_id": null,
+  "parent": null,
+  "created_at": "2025-12-23T01:29:13Z",
+  "updated_at": "2025-12-23T01:29:13Z"
+}</code></pre>
+          </div>
+        </section>
+
+        <section class="section" id="transactions">
+          <div class="kicker">Transactions</div>
+          <h2>Create, update, query, and delete transactions</h2>
+          <p>
+            The transactions API supports filtering, full record retrieval, writes, and deletes.
+            Transaction write endpoints accept either <code>category_id</code> or <code>category_name</code>.
+          </p>
+
+          <div class="callout note">
+            <strong>Important:</strong> <code>nature</code> controls the sign of the amount.
+            Use <code>expense</code> or <code>outflow</code> for money leaving the account.
+            Use <code>income</code> or <code>inflow</code> for deposits.
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/transactions</span></div>
+            <h3>Query parameters</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>account_id</code></td><td>uuid</td><td>Filter to a single account.</td></tr>
+                <tr><td><code>account_ids</code></td><td>array</td><td>Filter to multiple accounts.</td></tr>
+                <tr><td><code>category_id</code></td><td>uuid</td><td>Filter to a single category.</td></tr>
+                <tr><td><code>category_ids</code></td><td>array</td><td>Filter to multiple categories.</td></tr>
+                <tr><td><code>merchant_id</code></td><td>uuid</td><td>Filter to a single merchant.</td></tr>
+                <tr><td><code>merchant_ids</code></td><td>array</td><td>Filter to multiple merchants.</td></tr>
+                <tr><td><code>start_date</code></td><td>date</td><td>Inclusive lower date bound.</td></tr>
+                <tr><td><code>end_date</code></td><td>date</td><td>Inclusive upper date bound.</td></tr>
+                <tr><td><code>min_amount</code></td><td>decimal</td><td>Inclusive minimum amount.</td></tr>
+                <tr><td><code>max_amount</code></td><td>decimal</td><td>Inclusive maximum amount.</td></tr>
+                <tr><td><code>tag_ids</code></td><td>array</td><td>Filter by tags.</td></tr>
+                <tr><td><code>type</code></td><td>enum</td><td><code>income</code> or <code>expense</code>.</td></tr>
+                <tr><td><code>search</code></td><td>string</td><td>Matches name, notes, or merchant name.</td></tr>
+                <tr><td><code>page</code></td><td>integer</td><td>Page number.</td></tr>
+                <tr><td><code>per_page</code></td><td>integer</td><td>Items per page, max 100.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/transactions/:id</span></div>
+            <p class="subtle">Return a single transaction including account, category, merchant, tags, and transfer metadata.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/transactions</span></div>
+            <p class="subtle">Create a new transaction. <code>account_id</code> is required.</p>
+            <h3>Request body</h3>
+            <pre><code>{
+  "transaction": {
+    "account_id": "ACCOUNT_UUID",
+    "name": "Lunch",
+    "amount": 18.50,
+    "date": "2026-03-10",
+    "currency": "USD",
+    "nature": "expense",
+    "category_name": "Food &amp; Drink",
+    "notes": "Lunch with Tom &amp; Ava"
+  }
+}</code></pre>
+            <div class="callout note">
+              <strong>category_name resolution:</strong> Matching is exact by category name but case-insensitive.
+              If both <code>category_id</code> and <code>category_name</code> are supplied, <code>category_id</code> wins.
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method put">PUT</span><span class="endpoint-path">/api/v1/transactions/:id</span></div>
+            <p class="subtle">Update an existing transaction using the same transaction payload shape.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method delete">DELETE</span><span class="endpoint-path">/api/v1/transactions/:id</span></div>
+            <p class="subtle">Delete a transaction. Successful responses return <code>{ "message": "Transaction deleted successfully" }</code>.</p>
+          </div>
+        </section>
+
+        <section class="section" id="usage">
+          <div class="kicker">Usage</div>
+          <h2>Inspect API key usage and limits</h2>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/usage</span></div>
+            <p class="subtle">Return rate-limit and usage information for API-key-authenticated requests.</p>
+            <pre><code>{
+  "api_key": {
+    "name": "Test API Key",
+    "scopes": ["read"],
+    "last_used_at": "2026-03-10T12:00:00Z",
+    "created_at": "2026-03-10T10:00:00Z"
+  },
+  "rate_limit": {
+    "tier": "standard",
+    "limit": 100,
+    "current_count": 4,
+    "remaining": 96,
+    "reset_in_seconds": 3540,
+    "reset_at": "2026-03-10T13:00:00Z"
+  }
+}</code></pre>
+          </div>
+        </section>
+
+        <section class="section" id="chats">
+          <div class="kicker">AI</div>
+          <h2>Chats</h2>
+          <p>
+            AI endpoints require the authenticated user to have AI features enabled. Read operations require
+            read access. Write operations require <code>read_write</code>.
+          </p>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/chats</span></div>
+            <p class="subtle">List chats for the current user with pagination metadata.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method get">GET</span><span class="endpoint-path">/api/v1/chats/:id</span></div>
+            <p class="subtle">Return a chat and its messages.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/chats</span></div>
+            <p class="subtle">Create a chat. If <code>message</code> is provided, the API also creates the initial user message and queues an assistant response.</p>
+            <pre><code>{
+  "title": "Spending review",
+  "message": "Summarize my spending this month",
+  "model": "gpt-4"
+}</code></pre>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method patch">PATCH</span><span class="endpoint-path">/api/v1/chats/:id</span></div>
+            <p class="subtle">Update a chat title.</p>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method delete">DELETE</span><span class="endpoint-path">/api/v1/chats/:id</span></div>
+            <p class="subtle">Delete a chat. Successful responses return <code>204 No Content</code>.</p>
+          </div>
+        </section>
+
+        <section class="section" id="messages">
+          <div class="kicker">AI</div>
+          <h2>Messages</h2>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/chats/:chat_id/messages</span></div>
+            <p class="subtle">Create a user message within a chat and enqueue an assistant response.</p>
+            <pre><code>{
+  "content": "What changed in my balances this week?",
+  "model": "gpt-4"
+}</code></pre>
+          </div>
+
+          <div class="endpoint">
+            <div><span class="method post">POST</span><span class="endpoint-path">/api/v1/chats/:chat_id/messages/retry</span></div>
+            <p class="subtle">Retry the most recent assistant response for the chat.</p>
+          </div>
+        </section>
+
+        <section class="section" id="examples">
+          <div class="kicker">Examples</div>
+          <h2>Common integration flows</h2>
+
+          <h3>List categories for Siri Shortcuts</h3>
+          <pre><code>curl -s -H "X-Api-Key: YOUR_API_KEY" \
+http://0.0.0.0:3000/api/v1/categories | jq</code></pre>
+
+          <h3>Create an expense using category_name</h3>
+          <pre><code>curl -X POST http://0.0.0.0:3000/api/v1/transactions \
+  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction": {
+      "account_id": "YOUR_ACCOUNT_ID",
+      "name": "Lunch",
+      "amount": 18.50,
+      "category_name": "Food &amp; Drink",
+      "nature": "expense",
+      "date": "2026-03-10"
+    }
+  }' | jq</code></pre>
+
+          <h3>Create a deposit using category_name</h3>
+          <pre><code>curl -X POST http://0.0.0.0:3000/api/v1/transactions \
+  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction": {
+      "account_id": "YOUR_ACCOUNT_ID",
+      "name": "Paycheck",
+      "amount": 2500.00,
+      "category_name": "Income",
+      "nature": "income",
+      "date": "2026-03-10"
+    }
+  }' | jq</code></pre>
+
+          <h3>Notes on ampersands and spaces</h3>
+          <div class="callout note">
+            <strong>No escaping is required inside JSON strings.</strong> A category such as
+            <code>Food &amp; Drink</code> can be sent exactly as written inside the JSON body. URL encoding is only
+            required when the value is part of the URL or query string.
+          </div>
+        </section>
+
+        <div class="footer">
+          Maybe API v1 reference. Static documentation generated from the current Rails routes, controllers, and JSON views in this repository.
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

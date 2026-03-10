@@ -76,6 +76,8 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       return
     end
 
+    return unless ensure_valid_category_reference!
+
     account = family.accounts.find(transaction_params[:account_id])
     @entry = account.entries.new(entry_params_for_create)
 
@@ -102,9 +104,11 @@ class Api::V1::TransactionsController < Api::V1::BaseController
       error: "internal_server_error",
       message: "Error: #{e.message}"
     }, status: :internal_server_error
-end
+  end
 
   def update
+    return unless ensure_valid_category_reference!
+
     if @entry.update(entry_params_for_update)
       @entry.sync_account_later
       @entry.lock_saved_attributes!
@@ -253,7 +257,7 @@ end
     def transaction_params
       params.require(:transaction).permit(
         :account_id, :date, :amount, :name, :description, :notes, :currency,
-        :category_id, :merchant_id, :nature, tag_ids: []
+        :category_id, :category_name, :merchant_id, :nature, tag_ids: []
       )
     end
 
@@ -266,7 +270,7 @@ end
         notes: transaction_params[:notes],
         entryable_type: "Transaction",
         entryable_attributes: {
-          category_id: transaction_params[:category_id],
+          category_id: resolved_category_id,
           merchant_id: transaction_params[:merchant_id],
           tag_ids: transaction_params[:tag_ids] || []
         }
@@ -282,7 +286,7 @@ end
         notes: transaction_params[:notes],
         entryable_attributes: {
           id: @entry.entryable_id,
-          category_id: transaction_params[:category_id],
+          category_id: resolved_category_id,
           merchant_id: transaction_params[:merchant_id],
           tag_ids: transaction_params[:tag_ids]
         }.compact_blank
@@ -308,6 +312,34 @@ end
       else
         amount       # Use as provided
       end
+    end
+
+    def ensure_valid_category_reference!
+      return true unless category_name_param.present? && transaction_params[:category_id].blank?
+      return true if resolved_category_id.present?
+
+      render json: {
+        error: "validation_failed",
+        message: "Category could not be found",
+        errors: [ "Category '#{category_name_param}' was not found" ]
+      }, status: :unprocessable_entity
+
+      false
+    end
+
+    def resolved_category_id
+      return @resolved_category_id if defined?(@resolved_category_id)
+
+      @resolved_category_id =
+        if transaction_params[:category_id].present?
+          transaction_params[:category_id]
+        elsif category_name_param.present?
+          current_resource_owner.family.categories.find_by("LOWER(name) = ?", category_name_param.downcase)&.id
+        end
+    end
+
+    def category_name_param
+      @category_name_param ||= transaction_params[:category_name]&.strip
     end
 
     def safe_page_param

@@ -174,6 +174,52 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @account.id, response_data["account"]["id"]
   end
 
+  test "should create transaction with category_name" do
+    category = categories(:food_and_drink)
+    transaction_params = {
+      transaction: {
+        account_id: @account.id,
+        name: "Lunch",
+        amount: 18.50,
+        date: Date.current,
+        currency: "USD",
+        nature: "expense",
+        category_name: category.name
+      }
+    }
+
+    post api_v1_transactions_url,
+         params: transaction_params,
+         headers: api_headers(@api_key)
+
+    assert_response :created
+    response_data = JSON.parse(response.body)
+    assert_equal category.id, response_data.dig("category", "id")
+    assert_equal category.name, response_data.dig("category", "name")
+  end
+
+  test "should reject create with unknown category_name" do
+    transaction_params = {
+      transaction: {
+        account_id: @account.id,
+        name: "Lunch",
+        amount: 18.50,
+        date: Date.current,
+        currency: "USD",
+        nature: "expense",
+        category_name: "Does Not Exist"
+      }
+    }
+
+    post api_v1_transactions_url,
+         params: transaction_params,
+         headers: api_headers(@api_key)
+
+    assert_response :unprocessable_entity
+    response_data = JSON.parse(response.body)
+    assert_equal "validation_failed", response_data["error"]
+  end
+
   test "should reject create with read-only API key" do
     transaction_params = {
       transaction: {
@@ -225,6 +271,19 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
 
     response_data = JSON.parse(response.body)
     assert_equal "Updated Transaction Name", response_data["name"]
+  end
+
+  test "should update transaction with category_name" do
+    category = categories(:food_and_drink)
+
+    put api_v1_transaction_url(@transaction),
+        params: { transaction: { category_name: category.name } },
+        headers: api_headers(@api_key)
+
+    assert_response :success
+    response_data = JSON.parse(response.body)
+    assert_equal category.id, response_data.dig("category", "id")
+    assert_equal category.name, response_data.dig("category", "name")
   end
 
   test "should reject update with read-only API key" do

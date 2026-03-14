@@ -273,7 +273,7 @@ end
           category_id: resolved_category_id,
           merchant_id: transaction_params[:merchant_id],
           tag_ids: transaction_params[:tag_ids] || []
-        }
+        }.compact_blank
       }
 
       entry_params.compact
@@ -315,16 +315,28 @@ end
     end
 
     def ensure_valid_category_reference!
-      return true unless category_name_param.present? && transaction_params[:category_id].blank?
-      return true if resolved_category_id.present?
+      if transaction_params[:category_id].present?
+        exists = current_resource_owner.family.categories.exists?(transaction_params[:category_id])
+        unless exists
+          render json: {
+            error: "validation_failed",
+            message: "Category could not be found",
+            errors: [ "Category '#{transaction_params[:category_id]}' was not found" ]
+          }, status: :unprocessable_entity
+          return false
+        end
+      elsif category_name_param.present?
+        return true if resolved_category_id.present?
 
-      render json: {
-        error: "validation_failed",
-        message: "Category could not be found",
-        errors: [ "Category '#{category_name_param}' was not found" ]
-      }, status: :unprocessable_entity
+        render json: {
+          error: "validation_failed",
+          message: "Category could not be found",
+          errors: [ "Category '#{category_name_param}' was not found" ]
+        }, status: :unprocessable_entity
+        return false
+      end
 
-      false
+      true
     end
 
     def resolved_category_id

@@ -87,7 +87,7 @@ class User < ApplicationRecord
   end
 
   def ai_available?
-    !Rails.application.config.app_mode.self_hosted? || ENV["OPENAI_ACCESS_TOKEN"].present?
+    !Rails.application.config.app_mode.self_hosted? || ENV["GROQ_API_KEY"].present? || Setting.groq_api_key.present?
   end
 
   def ai_enabled?

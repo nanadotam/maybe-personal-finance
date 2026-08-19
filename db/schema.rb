@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_07_24_115507) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_13_165109) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -29,7 +29,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_07_24_115507) do
     t.uuid "accountable_id"
     t.decimal "balance", precision: 19, scale: 4
     t.string "currency"
-    t.virtual "classification", type: :string, as: "\nCASE\n    WHEN ((accountable_type)::text = ANY ((ARRAY['Loan'::character varying, 'CreditCard'::character varying, 'OtherLiability'::character varying])::text[])) THEN 'liability'::text\n    ELSE 'asset'::text\nEND", stored: true
+    t.virtual "classification", type: :string, as: "\nCASE\n    WHEN ((accountable_type)::text = ANY (ARRAY[('Loan'::character varying)::text, ('CreditCard'::character varying)::text, ('OtherLiability'::character varying)::text])) THEN 'liability'::text\n    ELSE 'asset'::text\nEND", stored: true
     t.uuid "import_id"
     t.uuid "plaid_account_id"
     t.decimal "cash_balance", precision: 19, scale: 4, default: "0.0"
@@ -146,6 +146,32 @@ ActiveRecord::Schema[7.2].define(version: 2025_07_24_115507) do
     t.index ["category_id"], name: "index_budget_categories_on_category_id"
   end
 
+  create_table "budget_split_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "budget_split_rule_id", null: false
+    t.string "name", null: false
+    t.string "bucket", null: false
+    t.decimal "percent", precision: 5, scale: 2, null: false
+    t.uuid "account_id"
+    t.uuid "category_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_budget_split_allocations_on_account_id"
+    t.index ["budget_split_rule_id", "bucket"], name: "idx_on_budget_split_rule_id_bucket_affcdf9566"
+    t.index ["budget_split_rule_id"], name: "index_budget_split_allocations_on_budget_split_rule_id"
+    t.index ["category_id"], name: "index_budget_split_allocations_on_category_id"
+  end
+
+  create_table "budget_split_rules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.decimal "tithe_percent", precision: 5, scale: 2, default: "10.0", null: false
+    t.decimal "needs_percent", precision: 5, scale: 2, default: "50.0", null: false
+    t.decimal "wants_percent", precision: 5, scale: 2, default: "20.0", null: false
+    t.decimal "savings_percent", precision: 5, scale: 2, default: "20.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_budget_split_rules_on_family_id", unique: true
+  end
+
   create_table "budgets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.date "start_date", null: false
@@ -210,6 +236,26 @@ ActiveRecord::Schema[7.2].define(version: 2025_07_24_115507) do
     t.datetime "updated_at", null: false
     t.index ["enrichable_id", "enrichable_type", "source", "attribute_name"], name: "idx_on_enrichable_id_enrichable_type_source_attribu_5be5f63e08", unique: true
     t.index ["enrichable_type", "enrichable_id"], name: "index_data_enrichments_on_enrichable"
+  end
+
+  create_table "debt_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "debt_id", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.date "occurred_on", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["debt_id"], name: "index_debt_entries_on_debt_id"
+  end
+
+  create_table "debts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "counterparty_name", null: false
+    t.string "currency", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_debts_on_family_id"
   end
 
   create_table "depositories", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -833,9 +879,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_07_24_115507) do
   add_foreign_key "balances", "accounts", on_delete: :cascade
   add_foreign_key "budget_categories", "budgets"
   add_foreign_key "budget_categories", "categories"
+  add_foreign_key "budget_split_allocations", "accounts"
+  add_foreign_key "budget_split_allocations", "budget_split_rules"
+  add_foreign_key "budget_split_allocations", "categories"
+  add_foreign_key "budget_split_rules", "families"
   add_foreign_key "budgets", "families"
   add_foreign_key "categories", "families"
   add_foreign_key "chats", "users"
+  add_foreign_key "debt_entries", "debts"
+  add_foreign_key "debts", "families"
   add_foreign_key "entries", "accounts"
   add_foreign_key "entries", "imports"
   add_foreign_key "family_exports", "families"

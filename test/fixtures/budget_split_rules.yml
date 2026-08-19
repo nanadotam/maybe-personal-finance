@@ -1,0 +1,6 @@
+one:
+  family: dylan_family
+  tithe_percent: 10.0
+  needs_percent: 50.0
+  wants_percent: 20.0
+  savings_percent: 20.0

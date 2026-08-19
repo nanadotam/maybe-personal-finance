@@ -1,0 +1,80 @@
+<% bucket_help = {
+  "tithe" => "Giving off the top — Tithe + Offertory. Comes before anything else.",
+  "needs" => "Non-negotiable running costs — EcoBank Current, Airtime, Subscriptions.",
+  "wants" => "Discretionary spend — Enjoyment + Miscellaneous.",
+  "savings" => "Money set aside or invested — Databank, Zenith, Achieve, EcoBank Savings."
+} %>
+
+<div class="pb-12">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-medium text-primary">Portfolio</h1>
+    <% if @rule %>
+      <span class="text-sm text-secondary">
+        Based on <%= format_money(Money.new(@monthly_income, "GHS")) %>/month
+        (<%= Current.family.income_statement.median_income(interval: "month") > 0 ? "actual median income" : "default estimate" %>)
+      </span>
+    <% end %>
+  </div>
+
+  <% if @rule %>
+    <div class="flex items-center gap-1 mb-6">
+      <% @ranges.each do |key, range| %>
+        <%= link_to range[:label], portfolio_path(range: key),
+              class: "px-3 py-1.5 rounded-lg text-sm #{key == @range_key ? "bg-container text-primary shadow-border-xs" : "text-secondary hover:text-primary"}" %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @rule.nil? %>
+    <div class="bg-container rounded-xl shadow-border-xs p-8 text-center text-secondary">
+      No budget split configured yet. Run <code class="bg-surface px-1 rounded">rake budget_split:seed</code> to set one up.
+    </div>
+  <% else %>
+    <% if @dashboard[:unclassified_amount].positive? %>
+      <div class="bg-container rounded-xl shadow-border-xs p-4 mb-6 border border-yellow-500/30">
+        <p class="text-sm text-primary">
+          <strong><%= format_money(Money.new(@dashboard[:unclassified_amount], "GHS")) %></strong>
+          in spending this period isn't linked to any budget allocation
+          <span title="Real transactions that don't match any account or category tied to a budget line. Shown for review — nothing is blocked or hidden.">ⓘ</span>
+          — worth reviewing.
+        </p>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <% @dashboard[:buckets].each do |bucket, data| %>
+        <div class="bg-container rounded-xl shadow-border-xs p-6">
+          <div class="flex items-baseline justify-between mb-1">
+            <h2 class="text-base font-medium text-primary capitalize">
+              <%= bucket %>
+              <span class="text-secondary text-xs cursor-help" title="<%= bucket_help[bucket] %>">ⓘ</span>
+            </h2>
+            <span class="text-sm <%= data[:actual_percent] > data[:target_percent] ? "text-red-500" : "text-secondary" %>"
+                  title="Actual: what's really happened, computed live from your transactions. Target: what your budget says should go here for the selected range.">
+              <%= number_with_precision(data[:actual_percent], precision: 1) %>% actual
+              / <%= number_with_precision(data[:target_percent], precision: 1) %>% target
+            </span>
+          </div>
+
+          <div class="w-full bg-surface rounded-full h-2 mb-4">
+            <% pct = data[:target_amount].positive? ? [(data[:actual_amount] / data[:target_amount] * 100), 100].min : 0 %>
+            <div class="h-2 rounded-full <%= data[:actual_amount] > data[:target_amount] ? "bg-red-500" : "bg-blue-500" %>"
+                 style="width: <%= pct %>%"></div>
+          </div>
+
+          <ul class="space-y-2">
+            <% data[:allocations].each do |allocation| %>
+              <li class="flex items-center justify-between text-sm">
+                <span class="text-secondary"><%= allocation[:name] %></span>
+                <span class="text-primary" title="Actual / Target for the selected range">
+                  <%= format_money(Money.new(allocation[:actual_amount], "GHS")) %>
+                  <span class="text-secondary">/ <%= format_money(Money.new(allocation[:target_amount], "GHS")) %></span>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

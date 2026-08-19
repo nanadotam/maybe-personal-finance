@@ -10,6 +10,7 @@ x-rails-env: &rails_env
   POSTGRES_PASSWORD: postgres
   BUNDLE_PATH: /bundle
   REDIS_URL: redis://redis:6379/1
+  SELF_HOSTED: "true"
 
 services:
   app:
@@ -22,7 +23,7 @@ services:
       - bundle_cache:/bundle
 
     ports:
-      - "3000:3000"
+      - "3002:3000"
 
     command: sleep infinity
 
@@ -52,7 +53,7 @@ services:
     volumes:
       - redis-data:/data
   db:
-    image: postgres:latest
+    image: postgres:16
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data

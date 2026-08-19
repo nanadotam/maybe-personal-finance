@@ -1,0 +1,17 @@
+tithe:
+  budget_split_rule: one
+  name: Tithe — God
+  bucket: tithe
+  percent: 10.00
+
+databank:
+  budget_split_rule: one
+  name: Databank
+  bucket: savings
+  percent: 16.67
+
+enjoyment:
+  budget_split_rule: one
+  name: Enjoyment
+  bucket: wants
+  percent: 10.00

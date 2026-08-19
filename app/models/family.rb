@@ -33,6 +33,9 @@ class Family < ApplicationRecord
   has_many :budgets, dependent: :destroy
   has_many :budget_categories, through: :budgets
 
+  has_one :budget_split_rule, dependent: :destroy
+  has_many :budget_split_allocations, through: :budget_split_rule
+
   validates :locale, inclusion: { in: I18n.available_locales.map(&:to_s) }
   validates :date_format, inclusion: { in: DATE_FORMATS.map(&:last) }
 

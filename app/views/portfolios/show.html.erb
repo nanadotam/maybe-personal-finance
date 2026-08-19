@@ -1,0 +1,58 @@
+<div class="pb-12">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-medium text-primary">Portfolio</h1>
+    <% if @rule %>
+      <span class="text-sm text-secondary">
+        Based on <%= format_money(Money.new(@monthly_income, "GHS")) %>/month
+        (<%= Current.family.income_statement.median_income(interval: "month") > 0 ? "actual median income" : "default estimate" %>)
+      </span>
+    <% end %>
+  </div>
+
+  <% if @rule.nil? %>
+    <div class="bg-container rounded-xl shadow-border-xs p-8 text-center text-secondary">
+      No budget split configured yet. Run <code class="bg-surface px-1 rounded">rake budget_split:seed</code> to set one up.
+    </div>
+  <% else %>
+    <% if @dashboard[:unclassified_amount].positive? %>
+      <div class="bg-container rounded-xl shadow-border-xs p-4 mb-6 border border-yellow-500/30">
+        <p class="text-sm text-primary">
+          <strong><%= format_money(Money.new(@dashboard[:unclassified_amount], "GHS")) %></strong>
+          in spending this month isn't linked to any budget allocation yet — worth reviewing.
+        </p>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <% @dashboard[:buckets].each do |bucket, data| %>
+        <div class="bg-container rounded-xl shadow-border-xs p-6">
+          <div class="flex items-baseline justify-between mb-1">
+            <h2 class="text-base font-medium text-primary capitalize"><%= bucket %></h2>
+            <span class="text-sm <%= data[:actual_percent] > data[:target_percent] ? "text-red-500" : "text-secondary" %>">
+              <%= number_with_precision(data[:actual_percent], precision: 1) %>% actual
+              / <%= number_with_precision(data[:target_percent], precision: 1) %>% target
+            </span>
+          </div>
+
+          <div class="w-full bg-surface rounded-full h-2 mb-4">
+            <% pct = data[:target_amount].positive? ? [(data[:actual_amount] / data[:target_amount] * 100), 100].min : 0 %>
+            <div class="h-2 rounded-full <%= data[:actual_amount] > data[:target_amount] ? "bg-red-500" : "bg-blue-500" %>"
+                 style="width: <%= pct %>%"></div>
+          </div>
+
+          <ul class="space-y-2">
+            <% data[:allocations].each do |allocation| %>
+              <li class="flex items-center justify-between text-sm">
+                <span class="text-secondary"><%= allocation[:name] %></span>
+                <span class="text-primary">
+                  <%= format_money(Money.new(allocation[:actual_amount], "GHS")) %>
+                  <span class="text-secondary">/ <%= format_money(Money.new(allocation[:target_amount], "GHS")) %></span>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

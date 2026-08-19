@@ -62,4 +62,16 @@ class BudgetSplitRuleTest < ActiveSupport::TestCase
     allocation = budget_split_allocations(:databank)
     assert_equal 1250.25.to_d, allocation.amount_for(7500)
   end
+
+  test "dashboard_for scales target amounts by months but not actuals" do
+    family = families(:empty)
+    rule = BudgetSplitRule.seed_ghs_default_for(family)
+    period = Period.custom(start_date: 6.months.ago.to_date, end_date: Date.current)
+
+    one_month = rule.dashboard_for(period, monthly_income: 7500, months: 1)
+    six_months = rule.dashboard_for(period, monthly_income: 7500, months: 6)
+
+    assert_equal one_month[:buckets]["tithe"][:target_amount] * 6, six_months[:buckets]["tithe"][:target_amount]
+    assert_equal 0, six_months[:buckets]["tithe"][:actual_amount]
+  end
 end

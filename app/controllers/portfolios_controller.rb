@@ -1,11 +1,25 @@
 class PortfoliosController < ApplicationController
+  RANGES = {
+    "1m" => { months: 1,  label: "1 Month" },
+    "3m" => { months: 3,  label: "3 Months" },
+    "6m" => { months: 6,  label: "6 Months" },
+    "1y" => { months: 12, label: "1 Year" }
+  }.freeze
+
   def show
     @rule = Current.family.budget_split_rule
     return unless @rule
 
-    @period = Period.custom(start_date: Date.current.beginning_of_month, end_date: Date.current.end_of_month)
+    @range_key = RANGES.key?(params[:range]) ? params[:range] : "1m"
+    @ranges = RANGES
+    months = RANGES[@range_key][:months]
+
+    @period = Period.custom(
+      start_date: (Date.current - (months - 1).months).beginning_of_month,
+      end_date: Date.current.end_of_month
+    )
     @monthly_income = (params[:monthly_income].presence || default_monthly_income).to_d
-    @dashboard = @rule.dashboard_for(@period, monthly_income: @monthly_income)
+    @dashboard = @rule.dashboard_for(@period, monthly_income: @monthly_income, months: months)
   end
 
   private

@@ -61,12 +61,17 @@ class BudgetSplitRule < ApplicationRecord
   # Live dashboard data for a period: per-bucket target vs. actual, plus
   # whatever family spend/income isn't claimed by any allocation ("Unclassified").
   # Nothing here is written/cached — always reflects current transactions.
-  def dashboard_for(period, monthly_income:)
+  #
+  # `months` scales the target so it stays meaningful at any range — e.g. a
+  # 6-month view compares actual spend against 6x the monthly target, not 1x.
+  def dashboard_for(period, monthly_income:, months: 1)
+    scaled_income = monthly_income.to_d * months
+
     buckets = BUCKETS.index_with do |bucket|
       allocations = allocations_for(bucket).order(:name).map do |allocation|
         {
           name: allocation.name,
-          target_amount: allocation.amount_for(monthly_income),
+          target_amount: allocation.amount_for(scaled_income),
           actual_amount: allocation.actual_amount_for(period)
         }
       end
@@ -74,7 +79,7 @@ class BudgetSplitRule < ApplicationRecord
       {
         target_percent: target_percent_for(bucket),
         actual_percent: actual_percent_for(bucket),
-        target_amount: monthly_income.to_d * target_percent_for(bucket).to_d / 100,
+        target_amount: scaled_income * target_percent_for(bucket).to_d / 100,
         actual_amount: allocations.sum { |a| a[:actual_amount] },
         allocations: allocations
       }
